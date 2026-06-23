@@ -220,7 +220,7 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
-st.image("https://pin.it/pUsHr6wZr", width=150)
+st.image("C:\\Users\\acer\\Pictures\\Screenshots\\Screenshot 2026-06-23 225501.png", width=150)
 st.title("92 Car Garage — AI Sales Assistant")
 
 if stock_error:
