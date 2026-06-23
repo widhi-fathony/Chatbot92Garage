@@ -1,5 +1,5 @@
 # =============================================================================
-# app.py — AI Chatbot Showroom "92 Car Garage" (VERSI UTUH DENGAN FOTO & FAQ)
+# app.py — AI Chatbot Showroom "92 Car Garage" (VERSI FINAL SIAP DEPLOY)
 # =============================================================================
 
 import os
@@ -19,7 +19,7 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 if not GROQ_API_KEY:
-    st.error("❌ **GROQ_API_KEY tidak ditemukan!** Pastikan file `.env` sudah diisi dengan API Key dari Groq.")
+    st.error("❌ **GROQ_API_KEY tidak ditemukan!** Pastikan file `.env` sudah diisi dengan API Key dari Groq atau atur di Streamlit Secrets.")
     st.stop()
 
 # Inisialisasi client Groq
@@ -107,8 +107,8 @@ ATURAN KETAT (WAJIB DIPATUHI):
 2. Jika kustomer bertanya DI LUAR TOPIK, KAMU WAJIB MENOLAK. Contoh: "Maaf Kak, aku cuma AI Sales Assistant yang ngerti soal mobil aja nih hehe 😅. Yuk bahas stok yang ready!"
 3. ANTI HALUSINASI: JANGAN PERNAH mengarang, menebak, atau menyebutkan spesifikasi yang tidak tertulis di DATA STOK MOBIL.
 4. ATURAN HARGA MOBIL: Di dalam data stok saat ini TIDAK ADA informasi harga. Jika kustomer bertanya soal harga atau simulasi kredit, JANGAN MENEBAK ANGKA APAPUN. Sampaikan dengan ramah bahwa harga spesial/nego bisa didiskusikan langsung dengan Admin, dan arahkan mereka untuk menekan tombol WhatsApp.
-5. ATURAN TOMBOL WA: JANGAN PERNAH menyertakan link URL atau tautan Markdown manual (seperti [Link]) di dalam teks balasanmu. Cukup beri tahu kustomer untuk mengeklik tombol WhatsApp hijau yang tersedia di bawah pesan.
-6. ATURAN FOTO UNIT: Jika kustomer meminta foto, melihat visual, atau bertanya tentang unit mobil tertentu yang tertera di data stok, ambil URL dari kolom "Link Foto" pada unit terkait dan masukkan ke dalam properti "foto" pada output JSON. Jika tidak ada atau tidak relevan, kosongkan properti "foto" tersebut.
+5. ATURAN TOMBOL WA: JANGAN PERNAH menyertakan link URL atau tautan Markdown manual di dalam teks balasanmu. Cukup beri tahu kustomer untuk mengeklik tombol WhatsApp hijau yang tersedia di bawah pesan.
+6. ATURAN FOTO UNIT: Jika kustomer meminta foto, melihat visual, atau bertanya tentang unit mobil tertentu yang tertera di data stok, ambil URL/jalur file dari kolom "Link Foto" pada unit terkait dan masukkan HANYA ke dalam properti "foto" pada output JSON. JANGAN PERNAH menuliskan link/jalur foto tersebut di dalam teks balasanmu ("reply"). Jika tidak relevan, kosongkan properti "foto" tersebut.
 
 KLASIFIKASI INTENT:
 - "serious_buyer": Tanya harga, minta simulasi kredit, minta survey fisik, nego serius, minta WA admin, minta kontak, ingin bertemu, atau secara eksplisit meminta tombol admin.
@@ -222,7 +222,8 @@ stock_context_text = format_stock_as_text(df_stock)
 
 # --- KONFIGURASI SIDEBAR & MENU NAVIGASI ---
 with st.sidebar:
-    st.image("Screenshot 2026-06-23 225501.png", width=150)
+    # JALUR LOGO SUDAH DIPERBAIKI UNTUK DEPLOYMENT
+    st.image("logo.png", width=150)
     st.markdown("## 🚗 92 Car Garage")
     st.markdown(f"**WhatsApp Admin:** [Hubungi Kami](https://wa.me/628113787077)")    
     
@@ -275,7 +276,10 @@ if pilihan_menu == "💬 Customer Mode":
             
             # Jika pesan memiliki data foto, tampilkan di bawah teks chat
             if msg.get("foto"):
-                st.image(msg["foto"], caption="Visual Unit Mobil", use_container_width=True)
+                try:
+                    st.image(msg["foto"], caption="Visual Unit Mobil", use_container_width=True)
+                except Exception:
+                    st.caption("*(Mohon maaf, visual gambar gagal dimuat)*")
                 
             # Jika pesan memicu tombol WhatsApp, tampilkan tepat di bawah pesan terkait
             if msg.get("show_wa_btn"):
@@ -298,7 +302,10 @@ if pilihan_menu == "💬 Customer Mode":
             
             # Tampilkan foto secara langsung jika terdeteksi dari excel
             if result.get("foto"):
-                st.image(result["foto"], caption="Visual Unit Mobil", use_container_width=True)
+                try:
+                    st.image(result["foto"], caption="Visual Unit Mobil", use_container_width=True)
+                except Exception:
+                    st.caption("*(Mohon maaf, visual gambar gagal dimuat)*")
                 
             # Tampilkan tombol secara langsung jika berniat menghubungi admin
             if result["show_wa_btn"]:
