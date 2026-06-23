@@ -86,7 +86,7 @@ def format_stock_as_text(df):
 # 4. FUNGSI AI — LOGIKA CHATBOT
 # =============================================================================
 
-def classify_and_respond(user_message, chat_history, stock_context, faq_context):
+def classify_and_respond(user_message, chat_history, stock_context, faq_context, df_data):
     system_prompt = f"""
 Kamu adalah Sales Assistant AI dari showroom mobil premium "92 Car Garage", 
 berlokasi di Joglo, Jakarta Barat.
@@ -102,19 +102,25 @@ DATA STOK MOBIL:
 PANDUAN FAQ:
 {faq_context}
 
+ATURAN KETAT (WAJIB DIPATUHI):
+1. Kamu HANYA BOLEH membahas topik seputar mobil, otomotif, transaksi jual beli, dan layanan 92 Car Garage.
+2. Jika kustomer bertanya DI LUAR TOPIK, KAMU WAJIB MENOLAK. Contoh: "Maaf Kak, aku cuma AI Sales Assistant yang ngerti soal mobil aja nih hehe 😅. Yuk bahas stok yang ready!"
+3. ANTI HALUSINASI: JANGAN PERNAH mengarang, menebak, atau menyebutkan spesifikasi yang tidak tertulis di DATA STOK MOBIL.
+4. ATURAN HARGA MOBIL: Di dalam data stok saat ini TIDAK ADA informasi harga. Jika kustomer bertanya soal harga atau simulasi kredit, JANGAN MENEBAK ANGKA APAPUN. Sampaikan dengan ramah bahwa harga spesial/nego bisa didiskusikan langsung dengan Admin, dan arahkan mereka untuk menekan tombol WhatsApp.
+
 KLASIFIKASI INTENT:
-- "serious_buyer": Minta survey fisik, nego serius, atau WA admin.
-- "general_question": Pertanyaan umum stok, kondisi, dll.
-- "other": Di luar topik.
+- "serious_buyer": Tanya harga, minta simulasi kredit, minta survey fisik, nego serius, atau minta WA admin. (PENTING: Pertanyaan HARGA wajib masuk kategori ini).
+- "general_question": Pertanyaan umum tentang ketersediaan stok, kondisi, pajak, dll.
+- "other": Di luar topik otomotif/showroom.
 
 OUTPUT HARUS DALAM FORMAT JSON BERIKUT:
 {{"intent": "serious_buyer" | "general_question" | "other", "reply": "teks balasan kamu"}}
 """
 
-    # Format pesan untuk Groq
     messages = [{"role": "system", "content": system_prompt}]
     
-    for msg in chat_history[-20:]:
+    # DIET TOKEN: Hanya mengirim 4 riwayat obrolan terakhir untuk menghemat token API
+    for msg in chat_history[-4:]:
         role = "user" if msg["role"] == "user" else "assistant"
         messages.append({"role": role, "content": msg["content"]})
         
@@ -123,7 +129,7 @@ OUTPUT HARUS DALAM FORMAT JSON BERIKUT:
     try:
         chat_completion = client.chat.completions.create(
             messages=messages,
-            model="llama-3.1-8b-instant", # UPDATE: Model terbaru untuk chat yang super cepat
+            model="llama-3.1-8b-instant",
             temperature=0.7,
             max_tokens=1024,
             response_format={"type": "json_object"}
@@ -136,10 +142,21 @@ OUTPUT HARUS DALAM FORMAT JSON BERIKUT:
         reply_text  = parsed.get("reply", "Maaf, aku tidak bisa menjawab saat ini.")
         show_wa_btn = (intent == "serious_buyer")
 
-        return {"reply": reply_text, "intent": intent, "show_wa_btn": show_wa_btn}
+        # --- LOGIKA BARU: MENCARI LINK FOTO MOBIL ---
+        link_gambar = None
+        if df_data is not None:
+            for _, row in df_data.iterrows():
+                # Jika "Nama Mobil" disebut dalam jawaban AI, ambil link gambarnya
+                if pd.notna(row.get('Nama Mobil')) and str(row.get('Nama Mobil')) in reply_text:
+                    val_link = row.get('LINK FOTO MOBIL')
+                    if pd.notna(val_link) and str(val_link).strip():
+                        link_gambar = str(val_link).strip()
+                        break
+
+        return {"reply": reply_text, "intent": intent, "show_wa_btn": show_wa_btn, "link_gambar": link_gambar}
 
     except Exception as e:
-        return {"reply": f"⚠️ Terjadi kesalahan: {e}", "intent": "error", "show_wa_btn": False}
+        return {"reply": f"⚠️ Terjadi kesalahan: {e}", "intent": "error", "show_wa_btn": False, "link_gambar": None}
 
 # =============================================================================
 # 5. FUNGSI AI — ADMIN PANEL
@@ -212,24 +229,34 @@ df_stock, stock_error = load_stock_data()
 faq_text = load_faq_legenda()
 stock_context_text = format_stock_as_text(df_stock)
 
+# --- KONFIGURASI SIDEBAR & MENU NAVIGASI ---
 with st.sidebar:
+    st.image("Screenshot 2026-06-23 225501.png", width=150)
     st.markdown("## 🚗 92 Car Garage")
-    st.markdown(f"**WhatsApp Admin:** [Hubungi Kami](https://wa.me/628113787077)")
+    st.markdown(f"**WhatsApp Admin:** [Hubungi Kami](https://wa.me/{ADMIN_WA_NUMBER})")    
+    st.divider()
+    # FITUR BARU: MENU NAVIGASI
+    pilihan_menu = st.radio("Pilih Halaman:", ["💬 Customer Mode", "📊 Admin Panel"])
+    
     st.divider()
     if st.button("🔄 Reset Percakapan", use_container_width=True):
         st.session_state.clear()
         st.rerun()
 
-st.image("Screenshot 2026-06-23 225501.png", width=150)
-st.title("92 Car Garage — AI Sales Assistant")
+# --- JUDUL UTAMA ---
+st.title("🚗 92 Car Garage — Chatbot Assistant")
 
 if stock_error:
     st.warning(f"⚠️ {stock_error}")
 
-tab_customer, tab_admin = st.tabs(["💬 Kustomer Mode", "📊 Admin Panel Control"])
+# =============================================================================
+# LOGIKA TAMPILAN BERDASARKAN MENU
+# =============================================================================
 
-# --- TAB KUSTOMER ---
-with tab_customer:
+# -----------------------------------------------------------------------------
+# HALAMAN 1: KUSTOMER MODE (HANYA CHATBOT)
+# -----------------------------------------------------------------------------
+if pilihan_menu == "💬 Customer Mode":
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = [{"role": "assistant", "content": "Halo Kak! Mau tanya soal unit mobil? Gas tanya aja ya! 😊"}]
     if "show_wa_button" not in st.session_state:
@@ -240,7 +267,7 @@ with tab_customer:
             st.markdown(msg["content"])
 
     if st.session_state.show_wa_button:
-        wa_link = f"https://wa.me/628113787077?text={ADMIN_WA_MESSAGE.replace(' ', '%20')}"
+        wa_link = f"https://wa.me/{ADMIN_WA_NUMBER}?text={ADMIN_WA_MESSAGE.replace(' ', '%20')}"
         st.link_button("📱 Chat Admin via WhatsApp", wa_link, use_container_width=True)
 
     user_input = st.chat_input("Tanya soal stok, kondisi mobil, dll...")
@@ -251,9 +278,14 @@ with tab_customer:
 
         with st.chat_message("assistant"):
             with st.spinner("Mengetik..."):
-                result = classify_and_respond(user_input, st.session_state.chat_history[:-1], stock_context_text, faq_text)
+                result = classify_and_respond(user_input, st.session_state.chat_history[:-1], stock_context_text, faq_text, df_stock)
             
             st.markdown(result["reply"])
+            
+            # --- FITUR BARU: MUNCULKAN GAMBAR DI CHAT ---
+            if result.get("link_gambar"):
+                st.image(result["link_gambar"], width=300, caption="Foto Unit")
+                
             if result["show_wa_btn"]:
                 st.session_state.show_wa_button = True
                 wa_link = f"https://wa.me/{ADMIN_WA_NUMBER}?text={ADMIN_WA_MESSAGE.replace(' ', '%20')}"
@@ -261,12 +293,30 @@ with tab_customer:
 
         st.session_state.chat_history.append({"role": "assistant", "content": result["reply"]})
 
+# -----------------------------------------------------------------------------
+# HALAMAN 2: ADMIN PANEL (TABEL STOK & KONTROL TRANSAKSI)
+# -----------------------------------------------------------------------------
+elif pilihan_menu == "📊 Admin Panel":
+    
+    # 1. TABEL STOK PINDAH KE SINI
     if df_stock is not None:
-        with st.expander("📋 Lihat Tabel Stok Mobil Lengkap"):
-            st.dataframe(df_stock, use_container_width=True, hide_index=True)
+        st.markdown("### 📋 Tabel Database Stok Mobil")
+        # UPDATE: st.dataframe diubah jadi st.data_editor agar gambar muncul sebagai thumbnail
+        st.data_editor(
+            df_stock, 
+            column_config={
+                "LINK FOTO MOBIL": st.column_config.ImageColumn(
+                    "Foto Unit",
+                    help="Preview foto mobil",
+                    width="medium" 
+                )
+            },
+            use_container_width=True, 
+            hide_index=True
+        )
+        st.divider()
 
-# --- TAB ADMIN ---
-with tab_admin:
+    # 2. FITUR ADMIN PANEL
     st.header("📊 Admin Panel Control")
     st.subheader("🔍 Analisis Karakter Kustomer")
     
