@@ -221,7 +221,7 @@ stock_context_text = format_stock_as_text(df_stock)
 
 # --- KONFIGURASI SIDEBAR & MENU NAVIGASI ---
 with st.sidebar:
-    st.image("C:\\Users\\acer\\Pictures\\Screenshots\\Screenshot 2026-06-23 225501.png", width=150)
+    st.image("Screenshot 2026-06-23 225501.png", width=150)
     st.markdown("## 🚗 92 Car Garage")
     st.markdown(f"**WhatsApp Admin:** [Hubungi Kami](https://wa.me/628113787077)")    
     st.divider()
