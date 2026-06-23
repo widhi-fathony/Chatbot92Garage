@@ -33,7 +33,7 @@ EXCEL_FILE      = "DataStockMobil_92CarGarage_v2.xlsx"
 SHEET_STOK      = "Data Stok Mobil"
 SHEET_LEGENDA   = "Legenda & Panduan FAQ"
 
-ADMIN_WA_NUMBER = "6281234567890"  # ← GANTI dengan nomor WA Admin asli
+ADMIN_WA_NUMBER = "628113787077"  # ← GANTI dengan nomor WA Admin asli
 ADMIN_WA_MESSAGE = "Halo Admin 92 Car Garage! Saya tertarik untuk survey fisik unit mobil. Mohon bantuannya 🙏"
 
 # =============================================================================
@@ -214,7 +214,7 @@ stock_context_text = format_stock_as_text(df_stock)
 
 with st.sidebar:
     st.markdown("## 🚗 92 Car Garage")
-    st.markdown(f"**WhatsApp Admin:** [Hubungi Kami](https://wa.me/{ADMIN_WA_NUMBER})")
+    st.markdown(f"**WhatsApp Admin:** [Hubungi Kami](https://wa.me/628113787077)")
     st.divider()
     if st.button("🔄 Reset Percakapan", use_container_width=True):
         st.session_state.clear()
@@ -240,7 +240,7 @@ with tab_customer:
             st.markdown(msg["content"])
 
     if st.session_state.show_wa_button:
-        wa_link = f"https://wa.me/{ADMIN_WA_NUMBER}?text={ADMIN_WA_MESSAGE.replace(' ', '%20')}"
+        wa_link = f"https://wa.me/628113787077?text={ADMIN_WA_MESSAGE.replace(' ', '%20')}"
         st.link_button("📱 Chat Admin via WhatsApp", wa_link, use_container_width=True)
 
     user_input = st.chat_input("Tanya soal stok, kondisi mobil, dll...")
