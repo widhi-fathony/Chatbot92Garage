@@ -1,5 +1,5 @@
 # =============================================================================
-# app.py — AI Chatbot Showroom "92 Car Garage" (VERSI ANTI-ERROR FOTO)
+# app.py — AI Chatbot Showroom "92 Car Garage" (VERSI GROQ API LATEST)
 # =============================================================================
 
 import os
@@ -19,7 +19,7 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 if not GROQ_API_KEY:
-    st.error("❌ **GROQ_API_KEY tidak ditemukan!** Pastikan file `.env` sudah diisi dengan API Key dari Groq atau atur di Streamlit Secrets.")
+    st.error("❌ **GROQ_API_KEY tidak ditemukan!** Pastikan file `.env` sudah diisi dengan API Key dari Groq.")
     st.stop()
 
 # Inisialisasi client Groq
@@ -33,7 +33,7 @@ EXCEL_FILE      = "DataStockMobil_92CarGarage_v2.xlsx"
 SHEET_STOK      = "Data Stok Mobil"
 SHEET_LEGENDA   = "Legenda & Panduan FAQ"
 
-ADMIN_WA_NUMBER = "628113787077"  
+ADMIN_WA_NUMBER = "628113787077"  # ← GANTI dengan nomor WA Admin asli
 ADMIN_WA_MESSAGE = "Halo Admin 92 Car Garage! Saya tertarik untuk survey fisik unit mobil. Mohon bantuannya 🙏"
 
 # =============================================================================
@@ -107,22 +107,21 @@ ATURAN KETAT (WAJIB DIPATUHI):
 2. Jika kustomer bertanya DI LUAR TOPIK, KAMU WAJIB MENOLAK.
 3. ANTI HALUSINASI: JANGAN PERNAH mengarang, menebak, atau menyebutkan spesifikasi yang tidak tertulis di DATA STOK MOBIL.
 4. ATURAN HARGA MOBIL: Di dalam data stok saat ini TIDAK ADA informasi harga. Jika kustomer bertanya soal harga atau simulasi kredit, sampaikan dengan ramah bahwa harga spesial/nego bisa didiskusikan langsung dengan Admin.
-5. ATURAN TOMBOL WA: JANGAN PERNAH menyertakan link URL atau tautan di dalam teks balasanmu.
-6. ATURAN FOTO UNIT (SANGAT PENTING): Jika kustomer meminta foto unit, ambil teks murni dari kolom "Link Foto". 
-   - Masukkan tulisan tersebut HANYA ke dalam properti "foto" pada JSON output.
-   - SANGAT DILARANG MENYEBUTKAN jalur file (seperti [Mobil/bmw.jpg]) DI DALAM teks balasan "reply". Teks balasan harus bersih dari nama file atau link apapun!
+5. ATURAN TOMBOL WA: JANGAN PERNAH memberikan link, URL, atau tautan Markdown apapun di dalam teks balasanmu. Jika kustomer ingin menghubungi admin, cukup arahkan mereka untuk "mengeklik tombol WhatsApp hijau di bawah". Sistem UI yang akan memunculkan tombolnya.
 
 KLASIFIKASI INTENT:
-- "serious_buyer": Tanya harga, minta simulasi kredit, minta survey fisik, nego serius, minta WA admin.
-- "general_question": Pertanyaan umum ketersediaan stok, kondisi, pajak, atau meminta FOTO mobil.
-- "other": Di luar topik otomotif.
+- "serious_buyer": Tanya harga, minta simulasi kredit, minta survey fisik, nego serius, minta WA admin, minta kontak, ingin bertemu, atau meminta tombol admin. (PENTING: Semua ini wajib masuk kategori ini).
+- "general_question": Pertanyaan umum tentang ketersediaan stok, kondisi, pajak, dll.
+- "other": Di luar topik otomotif/showroom.
 
 OUTPUT HARUS DALAM FORMAT JSON BERIKUT:
-{{"intent": "serious_buyer" | "general_question" | "other", "reply": "teks balasan kamu", "foto": "hanya isi dengan teks asli dari Link Foto tanpa kurung apapun, atau biarkan kosong"}}
+{{"intent": "serious_buyer" | "general_question" | "other", "reply": "teks balasan kamu"}}
 """
 
+    # --- BARIS YANG SEMPAT TERHAPUS ADA DI SINI ---
     messages = [{"role": "system", "content": system_prompt}]
     
+    # DIET TOKEN: Hanya mengirim 4 riwayat obrolan terakhir untuk menghemat token API
     for msg in chat_history[-4:]:
         role = "user" if msg["role"] == "user" else "assistant"
         messages.append({"role": role, "content": msg["content"]})
@@ -143,20 +142,12 @@ OUTPUT HARUS DALAM FORMAT JSON BERIKUT:
 
         intent      = parsed.get("intent", "general_question")
         reply_text  = parsed.get("reply", "Maaf, aku tidak bisa menjawab saat ini.")
-        
-        # --- PEMBERSIHAN BRUTAL FOTO ---
-        foto_url    = parsed.get("foto", "")
-        if isinstance(foto_url, str) and foto_url:
-            # Membuang kurung siku, kurung biasa, atau backtick jika AI masih bandel
-            foto_url = foto_url.replace("[", "").replace("]", "").replace("(", "").replace(")", "").replace("`", "").strip()
-        # -------------------------------
-        
         show_wa_btn = (intent == "serious_buyer")
 
-        return {"reply": reply_text, "intent": intent, "show_wa_btn": show_wa_btn, "foto": foto_url}
+        return {"reply": reply_text, "intent": intent, "show_wa_btn": show_wa_btn}
 
     except Exception as e:
-        return {"reply": f"⚠️ Terjadi kesalahan: {e}", "intent": "error", "show_wa_btn": False, "foto": ""}
+        return {"reply": f"⚠️ Terjadi kesalahan: {e}", "intent": "error", "show_wa_btn": False}
 
 # =============================================================================
 # 5. FUNGSI AI — ADMIN PANEL
@@ -172,7 +163,7 @@ def analyze_customer_character(chat_history):
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile", 
+            model="llama-3.3-70b-versatile", # UPDATE: Model terbaru untuk analisis mendalam
             temperature=0.4
         )
         return chat_completion.choices[0].message.content
@@ -196,7 +187,7 @@ OUTPUT HARUS JSON ARRAY SEPERTI INI:
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile", 
+            model="llama-3.3-70b-versatile", # UPDATE: Model terbaru untuk ekstraksi JSON
             temperature=0.1,
             response_format={"type": "json_object"}
         )
@@ -234,7 +225,8 @@ with st.sidebar:
     st.image("Screenshot 2026-06-23 225501.png", width=150)
     st.markdown("## 🚗 92 Car Garage")
     st.markdown(f"**WhatsApp Admin:** [Hubungi Kami](https://wa.me/628113787077)")    
-    
+
+# --- FITUR BARU: FAQ EXPANDER (Bisa dibuka-tutup) ---
     with st.expander("💡 Apa saja yang bisa ditanyakan?"):
         st.markdown("""
         **Kamu bisa tanya-tanya soal:**
@@ -243,12 +235,12 @@ with st.sidebar:
         - Status Pajak
         - Kelengkapan Surat
         - Informasi Fisik
-        - Keterangan Lain / Foto Unit
+        - Keterangan Lain
         """)
+    # ----------------------------------------------------
     
-    st.divider()
+    # FITUR BARU: MENU NAVIGASI
     pilihan_menu = st.radio("Pilih Halaman:", ["💬 Customer Mode", "📊 Admin Panel"])
-    
     st.divider()
     if st.button("🔄 Reset Percakapan", use_container_width=True):
         st.session_state.clear()
@@ -264,72 +256,70 @@ if stock_error:
 # LOGIKA TAMPILAN BERDASARKAN MENU
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# HALAMAN 1: KUSTOMER MODE (HANYA CHATBOT)
+# -----------------------------------------------------------------------------
 if pilihan_menu == "💬 Customer Mode":
+    # Inisialisasi riwayat chat
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = [{
             "role": "assistant", 
             "content": "Halo Kak! Mau tanya soal unit mobil? Gas tanya aja ya! 😊",
-            "show_wa_btn": False,
-            "foto": ""
+            "show_wa_btn": False  # <-- Tambahkan parameter ini
         }]
 
+    # Render ulang riwayat percakapan yang ada di memori
     for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
-            
-            if msg.get("foto"):
-                try:
-                    # Tambahan pengecekan apakah file benar-benar ada di dalam folder
-                    if os.path.exists(msg["foto"]):
-                        st.image(msg["foto"], caption="Visual Unit Mobil", use_container_width=True)
-                    else:
-                        st.caption(f"*(Sistem mencoba memuat foto dari: `{msg['foto']}`, namun file tidak ditemukan. Pastikan nama file dan huruf besar/kecil di Excel sama persis dengan yang ada di folder)*")
-                except Exception:
-                    st.caption("*(Terjadi kesalahan teknis saat memuat gambar)*")
-                
+            # Jika pesan ini punya flag tombol WA = True, munculkan tombolnya
             if msg.get("show_wa_btn"):
                 wa_link = f"https://wa.me/{ADMIN_WA_NUMBER}?text={ADMIN_WA_MESSAGE.replace(' ', '%20')}"
                 st.link_button("📱 Chat Admin via WhatsApp", wa_link, use_container_width=True)
 
-    user_input = st.chat_input("Tanya soal stok, kondisi mobil, atau minta foto unit...")
+    # Input pengguna baru
+    user_input = st.chat_input("Tanya soal stok, kondisi mobil, dll...")
+    
     if user_input:
-        st.session_state.chat_history.append({"role": "user", "content": user_input, "show_wa_btn": False, "foto": ""})
+        # 1. Simpan dan tampilkan chat user
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
         with st.chat_message("user"):
             st.markdown(user_input)
 
+        # 2. Proses balasan AI
         with st.chat_message("assistant"):
             with st.spinner("Mengetik..."):
+                # Buang key 'show_wa_btn' saat mengirim riwayat ke AI (API Groq tidak butuh parameter itu)
                 history_for_ai = [{"role": m["role"], "content": m["content"]} for m in st.session_state.chat_history[:-1]]
+                
                 result = classify_and_respond(user_input, history_for_ai, stock_context_text, faq_text)
             
+            # Tampilkan teks balasan
             st.markdown(result["reply"])
             
-            if result.get("foto"):
-                try:
-                    if os.path.exists(result["foto"]):
-                        st.image(result["foto"], caption="Visual Unit Mobil", use_container_width=True)
-                    else:
-                        st.caption(f"*(Sistem mencoba memuat foto dari: `{result['foto']}`, namun file tidak ditemukan. Pastikan nama file dan huruf besar/kecil di Excel sama persis dengan yang ada di folder)*")
-                except Exception:
-                    st.caption("*(Terjadi kesalahan teknis saat memuat gambar)*")
-                
+            # Tampilkan tombol JIKA intent = serious_buyer
             if result["show_wa_btn"]:
                 wa_link = f"https://wa.me/{ADMIN_WA_NUMBER}?text={ADMIN_WA_MESSAGE.replace(' ', '%20')}"
                 st.link_button("📱 Chat Admin via WhatsApp", wa_link, use_container_width=True)
 
+        # 3. Simpan balasan AI ke memori (TERMASUK status tombol WA-nya)
         st.session_state.chat_history.append({
             "role": "assistant", 
             "content": result["reply"],
-            "show_wa_btn": result["show_wa_btn"],
-            "foto": result.get("foto", "")
+            "show_wa_btn": result["show_wa_btn"] # <-- Ini kunci agar tombol tidak hilang saat layar refresh
         })
-
+# -----------------------------------------------------------------------------
+# HALAMAN 2: ADMIN PANEL (TABEL STOK & KONTROL TRANSAKSI)
+# -----------------------------------------------------------------------------
 elif pilihan_menu == "📊 Admin Panel":
+    
+    # 1. TABEL STOK PINDAH KE SINI
     if df_stock is not None:
         st.markdown("### 📋 Tabel Database Stok Mobil")
         st.dataframe(df_stock, use_container_width=True, hide_index=True)
         st.divider()
 
+    # 2. FITUR ADMIN PANEL
     st.header("📊 Admin Panel Control")
     st.subheader("🔍 Analisis Karakter Kustomer")
     
