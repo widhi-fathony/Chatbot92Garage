@@ -44,6 +44,15 @@ ADMIN_WA_MESSAGE = "Halo Admin 92 Car Garage! Saya tertarik untuk survey fisik u
 def load_stock_data():
     try:
         df = pd.read_excel(EXCEL_FILE, sheet_name=SHEET_STOK, header=3)
+        
+        # JANGAN hapus kolom Unnamed dulu, kita ganti namanya secara manual jika ketemu link drive
+        for col in df.columns:
+            if "Unnamed" in str(col):
+                # Mengecek apakah isi kolom tersebut mengandung link https://
+                if df[col].astype(str).str.contains("https://").any():
+                    df.rename(columns={col: "LINK FOTO MOBIL"}, inplace=True)
+                    
+        # Setelah diamankan, baru hapus kolom Unnamed sisanya
         df = df.loc[:, ~df.columns.str.contains("^Unnamed", case=False, na=False)]
         
         if "Nama Mobil" in df.columns:
@@ -231,7 +240,7 @@ stock_context_text = format_stock_as_text(df_stock)
 
 # --- KONFIGURASI SIDEBAR & MENU NAVIGASI ---
 with st.sidebar:
-    st.image("Screenshot 2026-06-23 225501.png", width=150)
+    st.image("C:\\Users\\acer\\Pictures\\Screenshots\\Screenshot 2026-06-23 225501.png", width=150)
     st.markdown("## 🚗 92 Car Garage")
     st.markdown(f"**WhatsApp Admin:** [Hubungi Kami](https://wa.me/{ADMIN_WA_NUMBER})")    
     st.divider()
