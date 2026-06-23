@@ -104,12 +104,13 @@ PANDUAN FAQ:
 
 ATURAN KETAT (WAJIB DIPATUHI):
 1. Kamu HANYA BOLEH membahas topik seputar mobil, otomotif, transaksi jual beli, dan layanan 92 Car Garage.
-2. Jika kustomer bertanya DI LUAR TOPIK, KAMU WAJIB MENOLAK. Contoh: "Maaf Kak, aku cuma AI Sales Assistant yang ngerti soal mobil aja nih hehe 😅. Yuk bahas stok yang ready!"
+2. Jika kustomer bertanya DI LUAR TOPIK, KAMU WAJIB MENOLAK.
 3. ANTI HALUSINASI: JANGAN PERNAH mengarang, menebak, atau menyebutkan spesifikasi yang tidak tertulis di DATA STOK MOBIL.
-4. ATURAN HARGA MOBIL: Di dalam data stok saat ini TIDAK ADA informasi harga. Jika kustomer bertanya soal harga atau simulasi kredit, JANGAN MENEBAK ANGKA APAPUN. Sampaikan dengan ramah bahwa harga spesial/nego bisa didiskusikan langsung dengan Admin, dan arahkan mereka untuk menekan tombol WhatsApp.
+4. ATURAN HARGA MOBIL: Di dalam data stok saat ini TIDAK ADA informasi harga. Jika kustomer bertanya soal harga atau simulasi kredit, sampaikan dengan ramah bahwa harga spesial/nego bisa didiskusikan langsung dengan Admin.
+5. ATURAN TOMBOL WA: JANGAN PERNAH memberikan link, URL, atau tautan Markdown apapun di dalam teks balasanmu. Jika kustomer ingin menghubungi admin, cukup arahkan mereka untuk "mengeklik tombol WhatsApp hijau di bawah". Sistem UI yang akan memunculkan tombolnya.
 
 KLASIFIKASI INTENT:
-- "serious_buyer": Tanya harga, minta simulasi kredit, minta survey fisik, nego serius, atau minta WA admin. (PENTING: Pertanyaan HARGA wajib masuk kategori ini).
+- "serious_buyer": Tanya harga, minta simulasi kredit, minta survey fisik, nego serius, minta WA admin, minta kontak, ingin bertemu, atau meminta tombol admin. (PENTING: Semua ini wajib masuk kategori ini).
 - "general_question": Pertanyaan umum tentang ketersediaan stok, kondisi, pajak, dll.
 - "other": Di luar topik otomotif/showroom.
 
@@ -247,37 +248,54 @@ if stock_error:
 # HALAMAN 1: KUSTOMER MODE (HANYA CHATBOT)
 # -----------------------------------------------------------------------------
 if pilihan_menu == "💬 Customer Mode":
+    # Inisialisasi riwayat chat
     if "chat_history" not in st.session_state:
-        st.session_state.chat_history = [{"role": "assistant", "content": "Halo Kak! Mau tanya soal unit mobil? Gas tanya aja ya! 😊"}]
-    if "show_wa_button" not in st.session_state:
-        st.session_state.show_wa_button = False
+        st.session_state.chat_history = [{
+            "role": "assistant", 
+            "content": "Halo Kak! Mau tanya soal unit mobil? Gas tanya aja ya! 😊",
+            "show_wa_btn": False  # <-- Tambahkan parameter ini
+        }]
 
+    # Render ulang riwayat percakapan yang ada di memori
     for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
+            # Jika pesan ini punya flag tombol WA = True, munculkan tombolnya
+            if msg.get("show_wa_btn"):
+                wa_link = f"https://wa.me/{ADMIN_WA_NUMBER}?text={ADMIN_WA_MESSAGE.replace(' ', '%20')}"
+                st.link_button("📱 Chat Admin via WhatsApp", wa_link, use_container_width=True)
 
-    if st.session_state.show_wa_button:
-        wa_link = f"https://wa.me/{ADMIN_WA_NUMBER}?text={ADMIN_WA_MESSAGE.replace(' ', '%20')}"
-        st.link_button("📱 Chat Admin via WhatsApp", wa_link, use_container_width=True)
-
+    # Input pengguna baru
     user_input = st.chat_input("Tanya soal stok, kondisi mobil, dll...")
+    
     if user_input:
+        # 1. Simpan dan tampilkan chat user
         st.session_state.chat_history.append({"role": "user", "content": user_input})
         with st.chat_message("user"):
             st.markdown(user_input)
 
+        # 2. Proses balasan AI
         with st.chat_message("assistant"):
             with st.spinner("Mengetik..."):
-                result = classify_and_respond(user_input, st.session_state.chat_history[:-1], stock_context_text, faq_text)
+                # Buang key 'show_wa_btn' saat mengirim riwayat ke AI (API Groq tidak butuh parameter itu)
+                history_for_ai = [{"role": m["role"], "content": m["content"]} for m in st.session_state.chat_history[:-1]]
+                
+                result = classify_and_respond(user_input, history_for_ai, stock_context_text, faq_text)
             
+            # Tampilkan teks balasan
             st.markdown(result["reply"])
+            
+            # Tampilkan tombol JIKA intent = serious_buyer
             if result["show_wa_btn"]:
-                st.session_state.show_wa_button = True
                 wa_link = f"https://wa.me/{ADMIN_WA_NUMBER}?text={ADMIN_WA_MESSAGE.replace(' ', '%20')}"
                 st.link_button("📱 Chat Admin via WhatsApp", wa_link, use_container_width=True)
 
-        st.session_state.chat_history.append({"role": "assistant", "content": result["reply"]})
-
+        # 3. Simpan balasan AI ke memori (TERMASUK status tombol WA-nya)
+        st.session_state.chat_history.append({
+            "role": "assistant", 
+            "content": result["reply"],
+            "show_wa_btn": result["show_wa_btn"] # <-- Ini kunci agar tombol tidak hilang saat layar refresh
+        })
 # -----------------------------------------------------------------------------
 # HALAMAN 2: ADMIN PANEL (TABEL STOK & KONTROL TRANSAKSI)
 # -----------------------------------------------------------------------------
