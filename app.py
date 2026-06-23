@@ -225,10 +225,22 @@ with st.sidebar:
     st.image("Screenshot 2026-06-23 225501.png", width=150)
     st.markdown("## 🚗 92 Car Garage")
     st.markdown(f"**WhatsApp Admin:** [Hubungi Kami](https://wa.me/628113787077)")    
-    st.divider()
+
+# --- FITUR BARU: FAQ EXPANDER (Bisa dibuka-tutup) ---
+    with st.expander("💡 Apa saja yang bisa ditanyakan?"):
+        st.markdown("""
+        **Kamu bisa tanya-tanya soal:**
+        - Unit Tersedia
+        - Kondisi Mobil
+        - Status Pajak
+        - Kelengkapan Surat
+        - Informasi Fisik
+        - Keterangan Lain
+        """)
+    # ----------------------------------------------------
+    
     # FITUR BARU: MENU NAVIGASI
     pilihan_menu = st.radio("Pilih Halaman:", ["💬 Customer Mode", "📊 Admin Panel"])
-    
     st.divider()
     if st.button("🔄 Reset Percakapan", use_container_width=True):
         st.session_state.clear()
