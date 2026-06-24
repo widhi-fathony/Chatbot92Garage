@@ -104,10 +104,11 @@ PANDUAN FAQ:
 
 ATURAN KETAT (WAJIB DIPATUHI):
 1. Kamu HANYA BOLEH membahas topik seputar mobil, otomotif, transaksi jual beli, dan layanan 92 Car Garage.
-2. Jika kustomer bertanya DI LUAR TOPIK, KAMU WAJIB MENOLAK.
-3. ANTI HALUSINASI: JANGAN PERNAH mengarang, menebak, atau menyebutkan spesifikasi yang tidak tertulis di DATA STOK MOBIL.
-4. ATURAN HARGA MOBIL: Di dalam data stok saat ini TIDAK ADA informasi harga. Jika kustomer bertanya soal harga atau simulasi kredit, sampaikan dengan ramah bahwa harga spesial/nego bisa didiskusikan langsung dengan Admin.
-5. ATURAN TOMBOL WA: JANGAN PERNAH memberikan link, URL, atau tautan Markdown apapun di dalam teks balasanmu. Jika kustomer ingin menghubungi admin, cukup arahkan mereka untuk "mengeklik tombol WhatsApp hijau di bawah". Sistem UI yang akan memunculkan tombolnya.
+2. Jika kustomer bertanya DI LUAR TOPIK, KAMU WAJIB MENOLAK. 
+3. Jika Kustomer meminta tabel list mobil, berikan karena masih termasuk topik
+4. ANTI HALUSINASI: JANGAN PERNAH mengarang, menebak, atau menyebutkan spesifikasi yang tidak tertulis di DATA STOK MOBIL.
+5. ATURAN HARGA MOBIL: Di dalam data stok saat ini TIDAK ADA informasi harga. Jika kustomer bertanya soal harga atau simulasi kredit, sampaikan dengan ramah bahwa harga spesial/nego bisa didiskusikan langsung dengan Admin.
+6. ATURAN TOMBOL WA: JANGAN PERNAH memberikan link, URL, atau tautan Markdown apapun di dalam teks balasanmu. Jika kustomer ingin menghubungi admin, cukup arahkan mereka untuk "mengeklik tombol WhatsApp hijau di bawah". Sistem UI yang akan memunculkan tombolnya.
 
 KLASIFIKASI INTENT:
 - "serious_buyer": Tanya harga, minta simulasi kredit, minta survey fisik, nego serius, minta WA admin, minta kontak, ingin bertemu, atau meminta tombol admin. (PENTING: Semua ini wajib masuk kategori ini).
@@ -229,7 +230,7 @@ with st.sidebar:
 # --- FITUR BARU: FAQ EXPANDER (Bisa dibuka-tutup) ---
     with st.expander("💡 Apa saja yang bisa ditanyakan?"):
         st.markdown("""
-        **Kamu bisa tanya-tanya soal:**
+        **Kamu bisa tanya-tanya terkait:**
         - Unit Tersedia
         - Kondisi Mobil
         - Status Pajak
